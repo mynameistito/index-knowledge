@@ -112,11 +112,11 @@ Task(
 
 ```powershell
 # Measure project scale first
-$skip = '(\\|/)(node_modules|\.git|venv|dist|build)(\\|/)'
+$skip = '(\\|/)(\.[^\\/]+|node_modules|venv|dist|build)(\\|/)'
 $total_files = (Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch $skip }).Count
-$src = Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.ts','.py','.go' -and $_.FullName -notmatch $skip }
+$src = Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.ts','.tsx','.js','.py','.go','.rs' -and $_.FullName -notmatch $skip }
 $total_lines = ($src | ForEach-Object { (Get-Content $_.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines } | Measure-Object -Sum).Sum
-$large_files = @($src | Where-Object { $_.Extension -in '.ts','.py' -and (Get-Content $_.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines -gt 500 }).Count
+$large_files = @($src | Where-Object { (Get-Content $_.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines -gt 500 }).Count
 $max_depth = (Get-ChildItem -Recurse -Directory | Where-Object { $_.FullName -notmatch $skip } | ForEach-Object { ($_.FullName -split '[\\/]').Count } | Measure-Object -Maximum).Maximum
 ```
 
@@ -151,17 +151,17 @@ Task(
 #### 1. Pwsh Structural Analysis
 ```powershell
 # Directory depth + file counts
-$skip = '(\\|/)(\.|node_modules|venv|dist|build)(\\|/)'
+$skip = '(\\|/)(\.[^\\/]+|node_modules|venv|dist|build)(\\|/)'
 Get-ChildItem -Recurse -Directory | Where-Object { $_.FullName -notmatch $skip } | Group-Object { ($_.FullName -split '[\\/]').Count } | Sort-Object Name | Format-Table Count, Name
 
 # Files per directory (top 30)
 Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch $skip } | Group-Object { Split-Path $_.FullName -Parent } | Sort-Object Count -Descending | Select-Object -First 30 | Format-Table Count, Name
 
 # Code concentration by extension
-Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.py','.ts','.tsx','.js','.go','.rs' -and $_.FullName -notmatch '(\\|/)node_modules(\\|/)' } | Group-Object { Split-Path $_.FullName -Parent } | Sort-Object Count -Descending | Select-Object -First 20 | Format-Table Count, Name
+Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.py','.ts','.tsx','.js','.go','.rs' -and $_.FullName -notmatch $skip } | Group-Object { Split-Path $_.FullName -Parent } | Sort-Object Count -Descending | Select-Object -First 20 | Format-Table Count, Name
 
 # Existing AGENTS.md / CLAUDE.md
-Get-ChildItem -Recurse -File -Include 'AGENTS.md','CLAUDE.md' | Where-Object { $_.FullName -notmatch '(\\|/)node_modules(\\|/)' }
+Get-ChildItem -Recurse -File -Include 'AGENTS.md','CLAUDE.md' | Where-Object { $_.FullName -notmatch $skip }
 ```
 
 #### 2. Read Existing AGENTS.md
@@ -178,9 +178,9 @@ If `--create-new`: Read all existing first (preserve context) → then delete al
 ```
 lsp_servers()  # Check availability
 
-# Entry points (parallel)
-lsp_document_symbols(filePath="src/index.ts")
-lsp_document_symbols(filePath="main.py")
+# Entry points — use paths discovered by explore agents (parallel)
+lsp_document_symbols(filePath="{discovered_entry_point_1}")
+lsp_document_symbols(filePath="{discovered_entry_point_2}")
 
 # Key symbols (parallel)
 lsp_workspace_symbols(filePath=".", query="class")
@@ -299,7 +299,7 @@ Task(
   subagent_type="general",
   prompt="Generate AGENTS.md for: src/hooks
     - Reason: high complexity
-    - 30-80 lines max
+    - 50-150 lines max
     - NEVER repeat parent content
     - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
     - Write directly to src/hooks/AGENTS.md"
@@ -310,7 +310,7 @@ Task(
   subagent_type="general",
   prompt="Generate AGENTS.md for: src/api
     - Reason: distinct domain
-    - 30-80 lines max
+    - 50-150 lines max
     - NEVER repeat parent content
     - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
     - Write directly to src/api/AGENTS.md"

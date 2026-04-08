@@ -107,10 +107,10 @@ Task(
 
 ```bash
 # Measure project scale first
-total_files=$(find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' | wc -l)
-total_lines=$(find . -type f \( -name "*.ts" -o -name "*.py" -o -name "*.go" \) -not -path '*/node_modules/*' -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}')
-large_files=$(find . -type f \( -name "*.ts" -o -name "*.py" \) -not -path '*/node_modules/*' -exec wc -l {} + 2>/dev/null | awk '$1 > 500 {count++} END {print count+0}')
-max_depth=$(find . -type d -not -path '*/node_modules/*' -not -path '*/.git/*' | awk -F/ '{print NF}' | sort -rn | head -1)
+total_files=$(find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | wc -l)
+total_lines=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' -exec wc -l {} + 2>/dev/null | awk '!/total/{s+=$1} END{print s+0}')
+large_files=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' -exec wc -l {} + 2>/dev/null | awk '!/total/ && $1 > 500 {count++} END {print count+0}')
+max_depth=$(find . -type d -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | awk -F/ '{print NF}' | sort -rn | head -1)
 ```
 
 Example spawning (all in ONE message for parallel execution):
@@ -147,13 +147,13 @@ Task(
 find . -type d -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | awk -F/ '{print NF-1}' | sort -n | uniq -c
 
 # Files per directory (top 30)
-find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -30
+find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -30
 
 # Code concentration by extension
-find . -type f \( -name "*.py" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.go" -o -name "*.rs" \) -not -path '*/node_modules/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -20
+find . -type f \( -name "*.py" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.go" -o -name "*.rs" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -20
 
 # Existing AGENTS.md / CLAUDE.md
-find . -type f \( -name "AGENTS.md" -o -name "CLAUDE.md" \) -not -path '*/node_modules/*' 2>/dev/null
+find . -type f \( -name "AGENTS.md" -o -name "CLAUDE.md" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' 2>/dev/null
 ```
 
 #### 2. Read Existing AGENTS.md
@@ -170,9 +170,9 @@ If `--create-new`: Read all existing first (preserve context) → then delete al
 ```
 lsp_servers()  # Check availability
 
-# Entry points (parallel)
-lsp_document_symbols(filePath="src/index.ts")
-lsp_document_symbols(filePath="main.py")
+# Entry points — use paths discovered by explore agents (parallel)
+lsp_document_symbols(filePath="{discovered_entry_point_1}")
+lsp_document_symbols(filePath="{discovered_entry_point_2}")
 
 # Key symbols (parallel)
 lsp_workspace_symbols(filePath=".", query="class")
@@ -291,7 +291,7 @@ Task(
   subagent_type="general",
   prompt="Generate AGENTS.md for: src/hooks
     - Reason: high complexity
-    - 30-80 lines max
+    - 50-150 lines max
     - NEVER repeat parent content
     - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
     - Write directly to src/hooks/AGENTS.md"
@@ -302,7 +302,7 @@ Task(
   subagent_type="general",
   prompt="Generate AGENTS.md for: src/api
     - Reason: distinct domain
-    - 30-80 lines max
+    - 50-150 lines max
     - NEVER repeat parent content
     - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
     - Write directly to src/api/AGENTS.md"

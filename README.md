@@ -2,7 +2,7 @@
 
 > Generate hierarchical AGENTS.md knowledge bases for any codebase — concise enough for LLM context windows, specific enough to be useful.
 
-Originally created by [@dmmulroy](https://github.com/dmmulroy/) in his [.dotfiles](https://github.com/dmmulroy/.dotfiles) repository. This repo forks andextends the skill with two platform-specific variants.
+Originally created by [@dmmulroy](https://github.com/dmmulroy/) in his [.dotfiles](https://github.com/dmmulroy/.dotfiles) repository. This repo forks and extends the skill with two platform-specific variants.
 
 ---
 
@@ -82,7 +82,7 @@ The skill is triggered by requests to "index", "document", "map", or "generate k
 
 ### Flags
 
-```
+```text
 --create-new   # Read existing → remove all → regenerate from scratch
 --max-depth=2  # Limit directory depth (default: 5)
 ```
@@ -99,40 +99,40 @@ This repo is compatible with the [`skills`](https://npm.im/skills) CLI — the o
 
 ```bash
 # Install the Unix variant
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix
+npx skills add mynameistito/index-knowledge --skill index-knowledge-unix
 
 # Install the PowerShell variant
-npx skills add mynameistito/index-knowlede --skill index-knowledge-pwsh
+npx skills add mynameistito/index-knowledge --skill index-knowledge-pwsh
 
 # Install both variants
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix --skill index-knowledge-pwsh
+npx skills add mynameistito/index-knowledge --skill index-knowledge-unix --skill index-knowledge-pwsh
 ```
 
 #### Scope Options
 
 ```bash
 # Project-level (default) — committed with your project, shared with your team
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix
+npx skills add mynameistito/index-knowledge --skill index-knowledge-unix
 
 # Global — available across all your projects
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix -g
+npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -g
 
 # Target a specific agent
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix -a opencode
-npx skills add mynameistito/index-knowlede --skill index-knowledge-pwsh -a claude-code
+npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -a opencode
+npx skills add mynameistito/index-knowledge --skill index-knowledge-pwsh -a claude-code
 ```
 
 #### List Available Skills First
 
 ```bash
 # See what's available in this repo before installing
-npx skills add mynameistito/index-knowlede --list
+npx skills add mynameistito/index-knowledge --list
 ```
 
 #### Non-Interactive (CI/CD)
 
 ```bash
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix -g -a opencode -y
+npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -g -a opencode -y
 ```
 
 ### Other Methods
@@ -140,7 +140,7 @@ npx skills add mynameistito/index-knowlede --skill index-knowledge-unix -g -a op
 You can also install directly via the `add-skill` tool by Vercel Labs:
 
 ```bash
-npx add-skill mynameistito/index-knowlede --skill index-knowledge-unix
+npx add-skill mynameistito/index-knowledge --skill index-knowledge-unix
 ```
 
 Or manually copy the desired variant's folder into your agent's skills directory:
@@ -208,7 +208,7 @@ The skill explicitly avoids these pitfalls:
 ## Project Structure
 
 ```
-index-knowlede/
+index-knowledge/
 ├── README.md                              # This file
 ├── LICENSE                                # MIT
 └── skills/

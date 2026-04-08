@@ -17,7 +17,7 @@ Generate a hierarchical AGENTS.md knowledge base for any codebase. Produces conc
 
 ## Usage
 
-```
+```bash
 # Default: update mode (modify existing + create new where warranted)
 index-knowledge
 
