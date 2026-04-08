@@ -1,0 +1,25 @@
+skills/index-knowledge-pwsh/README.md
+  07b85a9cc26b3e27 60
+README.md
+  07b85a9cc26b3e27 171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "41b7f0f4f8b8d04946d1a9495369571c53eb4a35",
+  "prompts": {
+    "07b85a9cc26b3e27": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_29302ec9cffeGGUm0xHKLeEmoX",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 61,
+      "total_deletions": 60,
+      "accepted_lines": 8,
+      "overriden_lines": 2
+    }
+  }
+}
