@@ -125,7 +125,7 @@ Write-Host "LARGE_FILES=$large_files"
 Write-Host "MAX_DEPTH=$max_depth"
 '@
 
-$tmpFile = [System.IO.Path]::GetTempFileName() + '.ps1'
+$tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + '.ps1')
 $scaleScript | Out-File -FilePath $tmpFile -Encoding utf8
 pwsh -NoProfile -File $tmpFile
 Remove-Item $tmpFile
@@ -180,7 +180,7 @@ Write-Host '=== Existing AGENTS.md / CLAUDE.md ==='
 Get-ChildItem -Recurse -File -Include 'AGENTS.md','CLAUDE.md' | Where-Object { $_.FullName -notmatch $skip } | Select-Object FullName
 '@
 
-$tmpFile = [System.IO.Path]::GetTempFileName() + '.ps1'
+$tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + '.ps1')
 $script | Out-File -FilePath $tmpFile -Encoding utf8
 pwsh -NoProfile -File $tmpFile
 Remove-Item $tmpFile
