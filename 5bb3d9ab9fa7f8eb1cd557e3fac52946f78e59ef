@@ -1,0 +1,29 @@
+skills/index-knowledge/metadata.json
+  edfe15fdac4ba831 1-7
+skills/index-knowledge/SKILL.md
+  edfe15fdac4ba831 1-411
+skills/index-knowledge/README.md
+  edfe15fdac4ba831 1-63
+README.md
+  edfe15fdac4ba831 3,5,13,30,32,34-40,50-54,89,92,99,102,105-106,118,126,129,144,188,199,202,208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "5bb3d9ab9fa7f8eb1cd557e3fac52946f78e59ef",
+  "prompts": {
+    "edfe15fdac4ba831": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_290930167ffeM9iyQKJpvUHIC5",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 512,
+      "total_deletions": 52,
+      "accepted_lines": 512,
+      "overriden_lines": 0
+    }
+  }
+}
