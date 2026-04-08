@@ -104,8 +104,6 @@ npx skills add mynameistito/index-knowlede --skill index-knowledge-unix
 # Install the PowerShell variant
 npx skills add mynameistito/index-knowlede --skill index-knowledge-pwsh
 
-# Install both variants
-npx skills add mynameistito/index-knowlede --skill index-knowledge-unix --skill index-knowledge-pwsh
 ```
 
 #### Scope Options
@@ -225,4 +223,5 @@ index-knowlede/
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+This agent SKILL is a fork from dmmulroy's repo, but refactored to be PowerShell native as well.
 
