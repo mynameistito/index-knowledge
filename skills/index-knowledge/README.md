@@ -1,23 +1,26 @@
 # Index Knowledge
 
-Generate a hierarchical AGENTS.md knowledge base for any codebase. Produces concise, machine-readable orientation docs scored by complexity and domain distinctness.
+Generate a hierarchical AGENTS.md knowledge base for any codebase. Produces concise, machine-readable orientation docs scored by complexity and domain distinctness. Fully OS-agnostic — works on macOS, Linux, WSL, Windows PowerShell, and Windows CMD.
+
+## Platform Support
+
+This skill uses **agent-native tools** (glob, grep, read) for all structural analysis instead of platform-specific shell commands. No bash or PowerShell required — the same workflow runs identically on every platform.
 
 ## Structure
 
 - `SKILL.md` - Skill definition with frontmatter metadata and full workflow instructions
 - `metadata.json` - Document metadata (version, organization, abstract)
-- `AGENTS.md` - Compiled output (generated at runtime, placed in target projects)
 
 ## What It Does
 
-1. **Discovery** - Scans project structure in parallel using explore agents + pwsh analysis + LSP symbols
+1. **Discovery** - Scans project structure in parallel using explore agents + agent-native tools (glob, grep, read) + LSP symbols
 2. **Scoring** - Rates each directory by file count, symbol density, module boundaries, and export centrality
 3. **Generation** - Produces root + subdirectory AGENTS.md files, each under 150 lines
 4. **Review** - Deduplicates, trims, and validates output against quality gates
 
 ## Usage
 
-```bash
+```
 # Default: update mode (modify existing + create new where warranted)
 index-knowledge
 
@@ -57,4 +60,4 @@ When modifying the skill:
 2. Update `metadata.json` version for releases
 3. Keep instructions parallel-first (multiple Task calls in one message)
 4. Never add generic content — everything should be project-specific
-5. Use PowerShell-compatible commands only (PowerShell cmdlets and native Windows tools) — no Unix-only commands
+5. Use agent-native tools (glob, grep, read) for all structural analysis — do not assume bash or PowerShell availability

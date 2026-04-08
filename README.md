@@ -1,8 +1,8 @@
 # index-knowledge
 
-> Generate hierarchical AGENTS.md knowledge bases for any codebase — concise enough for LLM context windows, specific enough to be useful.
+> Generate hierarchical AGENTS.md knowledge bases for any codebase — concise enough for LLM context windows, specific enough to be useful. Fully OS-agnostic: macOS, Linux, WSL, Windows PowerShell, Windows CMD.
 
-Originally created by [@dmmulroy](https://github.com/dmmulroy/) in his [.dotfiles](https://github.com/dmmulroy/.dotfiles) repository. This repo forks and extends the skill with two platform-specific variants.
+Originally created by [@dmmulroy](https://github.com/dmmulroy/) in his [.dotfiles](https://github.com/dmmulroy/.dotfiles) repository. This repo forks and extends the skill with a unified OS-agnostic variant that uses agent-native tools instead of platform-specific shell commands.
 
 ---
 
@@ -10,7 +10,7 @@ Originally created by [@dmmulroy](https://github.com/dmmulroy/) in his [.dotfile
 
 Most codebases lack machine-readable orientation — no quick map of where things live, what conventions matter, or which directories are complexity hotspots. `index-knowledge` fixes that by producing a hierarchy of concise `AGENTS.md` files:
 
-1. **Discovery** — Scans the project tree in parallel using explore agents, shell structural analysis, and LSP symbols
+1. **Discovery** — Scans the project tree in parallel using explore agents, agent-native structural analysis (glob, grep, read), and LSP symbols
 2. **Scoring** — Rates each directory by file count, symbol density, module boundaries, and export centrality
 3. **Generation** — Produces a root `AGENTS.md` (full treatment) and targeted subdirectory docs (leaner)
 4. **Review** — Deduplicates, trims, and validates output against quality gates
@@ -27,26 +27,17 @@ Subdirectory files include: `OVERVIEW`, `WHERE TO LOOK`, `CONVENTIONS`, `ANTI-PA
 
 ---
 
-## Variants
+## Platform Support
 
-This repo provides two platform-specific variants of the same skill. Choose the one that matches your shell environment:
+This skill is fully OS-agnostic. All structural analysis uses **agent-native tools** (glob, grep, read) that work identically on every platform. No bash or PowerShell required.
 
-| Variant | Directory | Shell | Use When |
-|---------|-----------|-------|----------|
-| **Unix** | `skills/index-knowledge-unix/` | bash, find, awk, wc, sed | macOS, Linux, WSL |
-| **PowerShell** | `skills/index-knowledge-pwsh/` | PowerShell (`Get-ChildItem`, `ForEach-Object`, etc.) | Windows (native PowerShell) |
-
-Both variants share the same workflow phases, scoring matrix, and output format. The only difference is the structural analysis commands in Phase 1 — Unix uses POSIX tools, Pwsh uses PowerShell cmdlets.
-
-### Quick Comparison
-
-| Aspect | Unix | PowerShell |
-|--------|------|------------|
-| File counting | `find . -type f \| wc -l` | `(Get-ChildItem -Recurse -File).Count` |
-| Line counting | `wc -l` pipeline | `Measure-Object -Line` |
-| Directory depth | `find \| awk -F/` | `Split-Path` + `.Count` |
-| Code concentration | `find \| sed \| sort \| uniq` | `Group-Object \| Sort-Object` |
-| Pattern filtering | `grep -r`, `find -name` | `Where-Object { $_.FullName -notmatch }` |
+| Platform | Supported |
+|----------|-----------|
+| macOS | Yes |
+| Linux | Yes |
+| WSL | Yes |
+| Windows PowerShell | Yes |
+| Windows CMD | Yes |
 
 ---
 
@@ -56,11 +47,11 @@ Directories are scored to determine which ones warrant their own `AGENTS.md`. Th
 
 | Factor | Weight | High Threshold | Source |
 |--------|--------|----------------|--------|
-| File count | 3× | >20 | shell |
-| Subdir count | 2× | >5 | shell |
-| Code ratio | 2× | >70% | shell |
-| Unique patterns | 1× | Has own config | explore agents |
-| Module boundary | 2× | Has `index.ts`/`__init__.py` | shell |
+| File count | 3× | >20 | glob |
+| Subdir count | 2× | >5 | read |
+| Code ratio | 2× | >70% | glob |
+| Unique patterns | 1× | Has own config | explore |
+| Module boundary | 2× | Has index.ts/__init__.py | glob |
 | Symbol density | 2× | >30 symbols | LSP |
 | Export count | 2× | >10 exports | LSP |
 | Reference centrality | 3× | >20 refs | LSP |
@@ -95,44 +86,36 @@ Default mode is **update** — modify existing `AGENTS.md` files and create new 
 
 ### Using `npx skills add` (Recommended)
 
-This repo is compatible with the [`skills`](https://npm.im/skills) CLI — the open agent skills ecosystem. Install a specific variant:
+This repo is compatible with the [`skills`](https://npm.im/skills) CLI — the open agent skills ecosystem.
 
 ```bash
-# Install the Unix variant
-npx skills add mynameistito/index-knowledge --skill index-knowledge-unix
-
-# Install the PowerShell variant
-npx skills add mynameistito/index-knowledge --skill index-knowledge-pwsh
-
-# Install both variants
-npx skills add mynameistito/index-knowledge --skill index-knowledge-unix --skill index-knowledge-pwsh
+npx skills add mynameistito/index-knowledge
 ```
 
 #### Scope Options
 
 ```bash
 # Project-level (default) — committed with your project, shared with your team
-npx skills add mynameistito/index-knowledge --skill index-knowledge-unix
+npx skills add mynameistito/index-knowledge
 
 # Global — available across all your projects
-npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -g
+npx skills add mynameistito/index-knowledge -g
 
 # Target a specific agent
-npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -a opencode
-npx skills add mynameistito/index-knowledge --skill index-knowledge-pwsh -a claude-code
+npx skills add mynameistito/index-knowledge -a opencode
+npx skills add mynameistito/index-knowledge -a claude-code
 ```
 
 #### List Available Skills First
 
 ```bash
-# See what's available in this repo before installing
 npx skills add mynameistito/index-knowledge --list
 ```
 
 #### Non-Interactive (CI/CD)
 
 ```bash
-npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -g -a opencode -y
+npx skills add mynameistito/index-knowledge -g -a opencode -y
 ```
 
 ### Other Methods
@@ -140,10 +123,10 @@ npx skills add mynameistito/index-knowledge --skill index-knowledge-unix -g -a o
 You can also install directly via the `add-skill` tool by Vercel Labs:
 
 ```bash
-npx add-skill mynameistito/index-knowledge --skill index-knowledge-unix
+npx add-skill mynameistito/index-knowledge
 ```
 
-Or manually copy the desired variant's folder into your agent's skills directory:
+Or manually copy the skill folder into your agent's skills directory:
 
 | Agent | Project Location | Global Location |
 |-------|-----------------|-----------------|
@@ -158,7 +141,7 @@ Or manually copy the desired variant's folder into your agent's skills directory
 
 ### Phase 1: Discovery + Analysis (Concurrent)
 
-The skill launches parallel explore agents for project structure, entry points, conventions, anti-patterns, build/CI, and test patterns. Meanwhile, the main session runs shell structural analysis and reads any existing `AGENTS.md` files.
+The skill launches parallel explore agents for project structure, entry points, conventions, anti-patterns, build/CI, and test patterns. Meanwhile, the main session runs agent-native structural analysis (glob, grep, read) and reads any existing `AGENTS.md` files.
 
 For larger projects, additional explore agents spawn dynamically based on file count, line count, directory depth, and language diversity.
 
@@ -202,6 +185,7 @@ The skill explicitly avoids these pitfalls:
 - **Redundancy** — Child files never repeat parent content
 - **Generic content** — Removes anything that applies to *all* projects
 - **Verbose style** — Telegraphic or die
+- **Platform-specific commands** — Always uses agent-native tools (glob, grep, read), never assumes bash or PowerShell
 
 ---
 
@@ -212,18 +196,13 @@ index-knowledge/
 ├── README.md                              # This file
 ├── LICENSE                                # MIT
 └── skills/
-    ├── index-knowledge-pwsh/
-    │   ├── SKILL.md                       # Skill definition (frontmatter + full workflow)
-    │   ├── metadata.json                  # Version, organization, abstract
-    │   └── README.md                       # Variant-specific docs
-    └── index-knowledge-unix/
+    └── index-knowledge/
         ├── SKILL.md                       # Skill definition (frontmatter + full workflow)
         ├── metadata.json                  # Version, organization, abstract
-        └── README.md                       # Variant-specific docs
+        └── README.md                      # Skill docs
 ```
 
 ## License
 
 MIT — see [LICENSE](./LICENSE).
-This agent SKILL is a fork from dmmulroy's repo, but refactored to be PowerShell native as well.
-
+Originally forked from dmmulroy's repo, refactored to be fully OS-agnostic using agent-native tools.
