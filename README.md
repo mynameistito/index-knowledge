@@ -225,4 +225,5 @@ index-knowledge/
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+This agent SKILL is a fork from dmmulroy's repo, but refactored to be PowerShell native as well.
 
