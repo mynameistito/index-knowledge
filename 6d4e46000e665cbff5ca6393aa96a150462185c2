@@ -1,0 +1,23 @@
+skills/index-knowledge-pwsh/SKILL.md
+  06c4fd23b17e6808 128,183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "6d4e46000e665cbff5ca6393aa96a150462185c2",
+  "prompts": {
+    "06c4fd23b17e6808": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_29110220effeBe9OpCfoKy9GnX",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
