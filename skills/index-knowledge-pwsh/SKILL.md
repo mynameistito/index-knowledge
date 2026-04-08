@@ -4,7 +4,7 @@ description: PowerShell - Generate a hierarchical AGENTS.md knowledge base for a
 license: MIT
 metadata:
   author: mynameistito, dmmulroy
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # index-knowledge
@@ -111,13 +111,24 @@ Task(
 | **Multiple languages** | >1 | +1 per language |
 
 ```powershell
-# Measure project scale first
+# Write scale measurement script to temp file (avoids $ variable stripping)
+$scaleScript = @'
 $skip = '(\\|/)(\.[^\\/]+|node_modules|venv|dist|build)(\\|/)'
 $total_files = (Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch $skip }).Count
 $src = Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.ts','.tsx','.js','.py','.go','.rs' -and $_.FullName -notmatch $skip }
 $total_lines = ($src | ForEach-Object { (Get-Content $_.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines } | Measure-Object -Sum).Sum
 $large_files = @($src | Where-Object { (Get-Content $_.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines -gt 500 }).Count
 $max_depth = (Get-ChildItem -Recurse -Directory | Where-Object { $_.FullName -notmatch $skip } | ForEach-Object { ($_.FullName -split '[\\/]').Count } | Measure-Object -Maximum).Maximum
+Write-Host "TOTAL_FILES=$total_files"
+Write-Host "TOTAL_LINES=$total_lines"
+Write-Host "LARGE_FILES=$large_files"
+Write-Host "MAX_DEPTH=$max_depth"
+'@
+
+$tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + '.ps1')
+$scaleScript | Out-File -FilePath $tmpFile -Encoding utf8
+pwsh -NoProfile -File $tmpFile
+Remove-Item $tmpFile
 ```
 
 Example spawning (all in ONE message for parallel execution):
@@ -149,20 +160,35 @@ Task(
 **While Task agents execute**, main session does:
 
 #### 1. Pwsh Structural Analysis
+
+Write the analysis script to a temp file and execute it. This avoids `$` variable stripping when using `pwsh -Command`:
+
 ```powershell
-# Directory depth + file counts
+$script = @'
 $skip = '(\\|/)(\.[^\\/]+|node_modules|venv|dist|build)(\\|/)'
+
+Write-Host '=== Directory depth + file counts ==='
 Get-ChildItem -Recurse -Directory | Where-Object { $_.FullName -notmatch $skip } | Group-Object { ($_.FullName -split '[\\/]').Count } | Sort-Object Name | Format-Table Count, Name
 
-# Files per directory (top 30)
+Write-Host '=== Files per directory (top 30) ==='
 Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch $skip } | Group-Object { Split-Path $_.FullName -Parent } | Sort-Object Count -Descending | Select-Object -First 30 | Format-Table Count, Name
 
-# Code concentration by extension
-Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.py','.ts','.tsx','.js','.go','.rs' -and $_.FullName -notmatch $skip } | Group-Object { Split-Path $_.FullName -Parent } | Sort-Object Count -Descending | Select-Object -First 20 | Format-Table Count, Name
+Write-Host '=== Code concentration by extension ==='
+Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.py','.ts','.tsx','.js','.go','.rs' -and $_.FullName -notmatch $skip } | Group-Object Extension | Sort-Object Count -Descending | Format-Table Count, Name
 
-# Existing AGENTS.md / CLAUDE.md
-Get-ChildItem -Recurse -File -Include 'AGENTS.md','CLAUDE.md' | Where-Object { $_.FullName -notmatch $skip }
+Write-Host '=== Existing AGENTS.md / CLAUDE.md ==='
+Get-ChildItem -Recurse -File -Include 'AGENTS.md','CLAUDE.md' | Where-Object { $_.FullName -notmatch $skip } | Select-Object FullName
+'@
+
+$tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + '.ps1')
+$script | Out-File -FilePath $tmpFile -Encoding utf8
+pwsh -NoProfile -File $tmpFile
+Remove-Item $tmpFile
 ```
+
+<critical>
+**MUST use `-File` with a temp .ps1 script** — never `pwsh -Command "..."` with `$` variables. PowerShell variables like `$skip` and `$_` get stripped by the outer shell when passed inside double-quoted strings. Always write to a temp file using a here-string (`@'...'@`) and use `pwsh -NoProfile -File <path>` instead.
+</critical>
 
 #### 2. Read Existing AGENTS.md
 ```
