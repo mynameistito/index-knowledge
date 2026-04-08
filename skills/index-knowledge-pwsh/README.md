@@ -57,3 +57,4 @@ When modifying the skill:
 2. Update `metadata.json` version for releases
 3. Keep instructions parallel-first (multiple Task calls in one message)
 4. Never add generic content — everything should be project-specific
+5. Use PowerShell-compatible commands only (PowerShell cmdlets and native Windows tools) — no Unix-only commands

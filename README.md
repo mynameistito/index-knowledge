@@ -168,7 +168,7 @@ Each directory is scored using the matrix above. High-scoring directories get th
 
 ### Phase 3: Generation
 
-Root `AGENTS.md` gets the full treatment. Subdirectory files are generated in parallel by general agents, each scoped to 30–80 lines with no parent content duplication.
+Root `AGENTS.md` gets the full treatment. Subdirectory files are generated in parallel by general agents, each scoped to 50–150 lines with no parent content duplication.
 
 ### Phase 4: Review & Deduplicate
 
