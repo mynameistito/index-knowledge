@@ -1,0 +1,25 @@
+skills/index-knowledge-pwsh/SKILL.md
+  a8f783787ba485ab 7,114-115,122-131,163-165,167,169-170,173,176-177,179-181,183-186,189-191
+skills/index-knowledge-pwsh/metadata.json
+  a8f783787ba485ab 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "d8b6254d43cf4ac0e3aa2bd8370baa6cd1f5ec77",
+  "prompts": {
+    "a8f783787ba485ab": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_2911f98ffffeRLfFBNdadCwSHe",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 35,
+      "total_deletions": 9,
+      "accepted_lines": 35,
+      "overriden_lines": 0
+    }
+  }
+}
