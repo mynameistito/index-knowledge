@@ -39,7 +39,7 @@ Default: Update mode (modify existing + create new where warranted)
 
 <critical>
 **TodoWrite ALL phases. Mark in_progress → completed in real-time.**
-  
+
 ```text
 TodoWrite([
   { id: "discovery", content: "Fire explore agents + LSP codemap + read existing", status: "pending", priority: "high" },
@@ -136,6 +136,7 @@ From glob results, derive:
 - **max_depth**: deepest directory nesting level
 
 Example spawning (all in ONE message for parallel execution):
+
 ```text
 // 500 files, 50k lines, depth 6, 15 large files → spawn additional agents
 Task(
@@ -168,6 +169,7 @@ Task(
 Use agent-native tools for all structural discovery. These work identically on macOS, Linux, WSL, Windows PowerShell, and Windows CMD.
 
 **Directory depth + file counts:**
+
 ```text
 // List directory tree from root
 read(filePath="{{PROJECT_ROOT}}")
@@ -179,6 +181,7 @@ read(filePath="{{PROJECT_ROOT}}/tests")
 ```
 
 **Files per directory (top 30):**
+
 ```text
 // Use glob to count files per directory
 glob(pattern="src/**/*", path="{{PROJECT_ROOT}}")
@@ -189,6 +192,7 @@ grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}/src")
 ```
 
 **Code concentration by extension:**
+
 ```text
 // Find all source files by extension
 glob(pattern="**/*.py", path="{{PROJECT_ROOT}}")
@@ -200,6 +204,7 @@ glob(pattern="**/*.rs", path="{{PROJECT_ROOT}}")
 ```
 
 **Existing AGENTS.md / CLAUDE.md:**
+
 ```text
 glob(pattern="**/AGENTS.md", path="{{PROJECT_ROOT}}")
 glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
@@ -210,6 +215,7 @@ glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
 </critical>
 
 #### 2. Read Existing AGENTS.md
+
 ```text
 For each existing file found:
   Read(filePath=file)
@@ -220,6 +226,7 @@ For each existing file found:
 If `--create-new`: Read all existing first (preserve context) → then delete all → regenerate.
 
 #### 3. LSP Codemap (if available)
+
 ```text
 lsp_servers()  # Check availability
 
@@ -269,6 +276,7 @@ lsp_find_references(filePath="...", line=X, character=Y)
 | **<8** | Skip (parent covers) |
 
 ### Output
+
 ```text
 AGENTS_LOCATIONS = [
   { path: ".", type: "root" },
