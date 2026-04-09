@@ -20,7 +20,7 @@ This skill uses **agent-native tools** (glob, grep, read) for all structural ana
 
 ## Usage
 
-```
+```text
 # Default: update mode (modify existing + create new where warranted)
 index-knowledge
 

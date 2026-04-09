@@ -19,7 +19,7 @@ Most codebases lack machine-readable orientation: no quick map of where things l
 
 ## Usage
 
-```
+```text
 --create-new   # Read existing → remove all → regenerate from scratch
 --max-depth=2  # Limit directory depth (default: 5)
 ```
@@ -40,7 +40,7 @@ Default: Update mode (modify existing + create new where warranted)
 <critical>
 **TodoWrite ALL phases. Mark in_progress → completed in real-time.**
   
-```
+```text
 TodoWrite([
   { id: "discovery", content: "Fire explore agents + LSP codemap + read existing", status: "pending", priority: "high" },
   { id: "scoring", content: "Score directories, determine locations", status: "pending", priority: "high" },
@@ -60,7 +60,7 @@ TodoWrite([
 
 Multiple Task calls in a single message execute in parallel. Results return directly.
 
-```
+```text
 // All Task calls in ONE message = parallel execution
 
 Task(
@@ -112,27 +112,31 @@ Task(
 | **Monorepo** | detected | +1 per package/workspace |
 | **Multiple languages** | >1 | +1 per language |
 
-Use agent-native tools to measure project scale. Read the project root directory, then use glob to count files by pattern:
+Use agent-native tools to measure project scale. Read the project root directory, then use glob to count files by pattern. Replace `{{PROJECT_ROOT}}` with the actual absolute path to the project:
 
-```
+```text
 // Count source files — adapt patterns to detected languages
-glob(pattern="**/*.{ts,tsx,js,py,go,rs}", path=".")
+glob(pattern="**/*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 
-// Count all files (excluding common skip directories)
-glob(pattern="**/*", path=".")
+// Count all files, excluding common skip directories (node_modules, .git, dist, build, vendor)
+// Use specific source patterns instead of "**/*" to skip irrelevant dirs automatically
+glob(pattern="src/**", path="{{PROJECT_ROOT}}")
+glob(pattern="lib/**", path="{{PROJECT_ROOT}}")
+glob(pattern="app/**", path="{{PROJECT_ROOT}}")
+glob(pattern="tests/**", path="{{PROJECT_ROOT}}")
 
 // Check directory depth by reading subdirectories
-read(filePath="/path/to/project")  // lists entries
+read(filePath="{{PROJECT_ROOT}}")  // lists entries
 ```
 
 From glob results, derive:
-- **total_files**: count of all files (minus skip directories)
+- **total_files**: count of files from targeted glob patterns (source dirs only, excluding node_modules/.git/dist/build/vendor)
 - **total_lines**: use `grep` with line counting or `read` files and count
 - **large_files**: files where read reveals >500 lines
 - **max_depth**: deepest directory nesting level
 
 Example spawning (all in ONE message for parallel execution):
-```
+```text
 // 500 files, 50k lines, depth 6, 15 large files → spawn additional agents
 Task(
   description="large files",
@@ -164,41 +168,41 @@ Task(
 Use agent-native tools for all structural discovery. These work identically on macOS, Linux, WSL, Windows PowerShell, and Windows CMD.
 
 **Directory depth + file counts:**
-```
+```text
 // List directory tree from root
-read(filePath="/absolute/path/to/project")
+read(filePath="{{PROJECT_ROOT}}")
 
 // Then recursively read subdirectories to map depth
-read(filePath="/absolute/path/to/project/src")
-read(filePath="/absolute/path/to/project/tests")
+read(filePath="{{PROJECT_ROOT}}/src")
+read(filePath="{{PROJECT_ROOT}}/tests")
 // ... etc for each major directory
 ```
 
 **Files per directory (top 30):**
-```
+```text
 // Use glob to count files per directory
-glob(pattern="src/**/*", path="/absolute/path/to/project")
-glob(pattern="tests/**/*", path="/absolute/path/to/project")
+glob(pattern="src/**/*", path="{{PROJECT_ROOT}}")
+glob(pattern="tests/**/*", path="{{PROJECT_ROOT}}")
 
 // For aggregate counts, use grep to find all files matching extensions
-grep(pattern=".", include="*.{ts,tsx,js,py,go,rs}", path="/absolute/path/to/project/src")
+grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}/src")
 ```
 
 **Code concentration by extension:**
-```
+```text
 // Find all source files by extension
-glob(pattern="**/*.py", path="/absolute/path/to/project")
-glob(pattern="**/*.ts", path="/absolute/path/to/project")
-glob(pattern="**/*.tsx", path="/absolute/path/to/project")
-glob(pattern="**/*.js", path="/absolute/path/to/project")
-glob(pattern="**/*.go", path="/absolute/path/to/project")
-glob(pattern="**/*.rs", path="/absolute/path/to/project")
+glob(pattern="**/*.py", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.ts", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.tsx", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.js", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.go", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.rs", path="{{PROJECT_ROOT}}")
 ```
 
 **Existing AGENTS.md / CLAUDE.md:**
-```
-glob(pattern="**/AGENTS.md", path="/absolute/path/to/project")
-glob(pattern="**/CLAUDE.md", path="/absolute/path/to/project")
+```text
+glob(pattern="**/AGENTS.md", path="{{PROJECT_ROOT}}")
+glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
 ```
 
 <critical>
@@ -206,7 +210,7 @@ glob(pattern="**/CLAUDE.md", path="/absolute/path/to/project")
 </critical>
 
 #### 2. Read Existing AGENTS.md
-```
+```text
 For each existing file found:
   Read(filePath=file)
   Extract: key insights, conventions, anti-patterns
@@ -216,7 +220,7 @@ For each existing file found:
 If `--create-new`: Read all existing first (preserve context) → then delete all → regenerate.
 
 #### 3. LSP Codemap (if available)
-```
+```text
 lsp_servers()  # Check availability
 
 # Entry points — use paths discovered by explore agents (parallel)
@@ -265,7 +269,7 @@ lsp_find_references(filePath="...", line=X, character=Y)
 | **<8** | Skip (parent covers) |
 
 ### Output
-```
+```text
 AGENTS_LOCATIONS = [
   { path: ".", type: "root" },
   { path: "src/hooks", score: 18, reason: "high complexity" },
@@ -333,7 +337,7 @@ AGENTS_LOCATIONS = [
 
 Launch general agents for each location in ONE message (parallel execution):
 
-```
+```text
 // All in single message = parallel
 Task(
   description="AGENTS.md for src/hooks",
@@ -379,7 +383,7 @@ For each generated file:
 
 ## Final Report
 
-```
+```text
 === index-knowledge Complete ===
 
 Mode: {update | create-new}
