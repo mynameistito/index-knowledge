@@ -126,8 +126,10 @@ glob(pattern="src/**", path="{{PROJECT_ROOT}}")
 glob(pattern="lib/**", path="{{PROJECT_ROOT}}")
 // ... adapt to the actual directories found above
 
-// Check directory depth by reading subdirectories
-read(filePath="{{PROJECT_ROOT}}/src")  // lists entries
+// Check directory depth by reading subdirectories of EACH discovered source directory
+// Do NOT hardcode "src" — use the directories found above
+// e.g. if root listing reveals src/, lib/, app/ → read each one:
+read(filePath="{{PROJECT_ROOT}}/{discovered_dir}")  // lists entries
 ```
 
 From glob results, derive:
@@ -176,20 +178,23 @@ Use agent-native tools for all structural discovery. These work identically on m
 read(filePath="{{PROJECT_ROOT}}")
 
 // Then recursively read subdirectories to map depth
-read(filePath="{{PROJECT_ROOT}}/src")
-read(filePath="{{PROJECT_ROOT}}/tests")
-// ... etc for each major directory
+// Use directories discovered from root listing — never assume "src" exists
+read(filePath="{{PROJECT_ROOT}}/{discovered_dir_1}")
+read(filePath="{{PROJECT_ROOT}}/{discovered_dir_2}")
+// ... etc for each major directory found above
 ```
 
 **Files per directory (top 30):**
 
 ```text
 // Use glob to count files per directory
-glob(pattern="src/**/*", path="{{PROJECT_ROOT}}")
-glob(pattern="tests/**/*", path="{{PROJECT_ROOT}}")
+// Use glob on EACH discovered source directory (never hardcode "src")
+glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
+glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
 
 // For aggregate counts, use grep to find all files matching extensions
-grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}/src")
+// Search the project root recursively instead of a single "src" dir
+grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 ```
 
 **Code concentration by extension:**
