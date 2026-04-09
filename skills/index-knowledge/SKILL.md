@@ -118,19 +118,20 @@ Use agent-native tools to measure project scale. Read the project root directory
 // Count source files — adapt patterns to detected languages
 glob(pattern="**/*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 
-// Count all files, excluding common skip directories (node_modules, .git, dist, build, vendor)
-// Use specific source patterns instead of "**/*" to skip irrelevant dirs automatically
+// Discover project directories (read root listing to find src, lib, app, cmd, pkg, etc.)
+read(filePath="{{PROJECT_ROOT}}")
+
+// Then glob each discovered source directory for file counts
 glob(pattern="src/**", path="{{PROJECT_ROOT}}")
 glob(pattern="lib/**", path="{{PROJECT_ROOT}}")
-glob(pattern="app/**", path="{{PROJECT_ROOT}}")
-glob(pattern="tests/**", path="{{PROJECT_ROOT}}")
+// ... adapt to the actual directories found above
 
 // Check directory depth by reading subdirectories
-read(filePath="{{PROJECT_ROOT}}")  // lists entries
+read(filePath="{{PROJECT_ROOT}}/src")  // lists entries
 ```
 
 From glob results, derive:
-- **total_files**: count of files from targeted glob patterns (source dirs only, excluding node_modules/.git/dist/build/vendor)
+- **total_files**: count from the language-extension glob (covers all source dirs regardless of layout)
 - **total_lines**: use `grep` with line counting or `read` files and count
 - **large_files**: files where read reveals >500 lines
 - **max_depth**: deepest directory nesting level
