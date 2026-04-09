@@ -1,18 +1,25 @@
 ---
-name: index-knowledge-unix
-description: UNIX - Generate a hierarchical AGENTS.md knowledge base for any codebase. Analyzes project structure, scoring directories by complexity and domain distinctness, then produces root and subdirectory AGENTS.md files concise enough for LLM context windows. Triggers on requests to "index", "document", "map", or "generate knowledge" for a codebase, or when onboarding onto a new project.
+name: index-knowledge
+description: Generate a hierarchical AGENTS.md knowledge base for any codebase. Analyzes project structure, scoring directories by complexity and domain distinctness, then produces root and subdirectory AGENTS.md files concise enough for LLM context windows. Triggers on requests to "index", "document", "map", or "generate knowledge" for a codebase, or when onboarding onto a new project.
 license: MIT
 metadata:
-  author: dmmulroy
-  version: "1.0.0"
+  author: mynameistito, dmmulroy
+  version: "1.0.2"
 ---
+
 # index-knowledge
 
-Generate hierarchical AGENTS.md files. Root + complexity-scored subdirectories.
+Generate hierarchical AGENTS.md files — a single root overview plus targeted subdirectory docs scored by complexity and domain distinctness. Every file stays under 150 lines so it fits in an LLM context window without drowning the model in boilerplate.
+
+**This skill is OS-agnostic.** All structural analysis uses agent-native tools (glob, grep, read) that work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands required.
+
+## Abstract
+
+Most codebases lack machine-readable orientation: no quick map of where things live, what conventions are non-obvious, or which directories are complexity hotspots. `index-knowledge` fixes that by producing a hierarchy of concise AGENTS.md files. It discovery-scans the tree in parallel (agent-native structural analysis + explore agents + LSP symbols where available), scores each directory on file count, symbol density, module boundaries, and export centrality, then decides which locations warrant their own doc. Root gets the full treatment (`OVERVIEW`, `STRUCTURE`, `WHERE TO LOOK`, `CODE MAP`, `CONVENTIONS`, `ANTI-PATTERNS`, `COMMANDS`, `NOTES`); subdirectories get a leaner version that never repeats the parent. The result is a map an agent can follow in seconds instead of minutes.
 
 ## Usage
 
-```
+```text
 --create-new   # Read existing → remove all → regenerate from scratch
 --max-depth=2  # Limit directory depth (default: 5)
 ```
@@ -25,15 +32,15 @@ Default: Update mode (modify existing + create new where warranted)
 
 1. **Discovery + Analysis** (concurrent)
    - Launch parallel explore agents (multiple Task calls in one message)
-   - Main session: bash structure + LSP codemap + read existing AGENTS.md
+   - Main session: agent-native structure analysis + LSP codemap + read existing AGENTS.md
 2. **Score & Decide** - Determine AGENTS.md locations from merged findings
 3. **Generate** - Root first, then subdirs in parallel
 4. **Review** - Deduplicate, trim, validate
 
 <critical>
 **TodoWrite ALL phases. Mark in_progress → completed in real-time.**
-  
-```
+
+```text
 TodoWrite([
   { id: "discovery", content: "Fire explore agents + LSP codemap + read existing", status: "pending", priority: "high" },
   { id: "scoring", content: "Score directories, determine locations", status: "pending", priority: "high" },
@@ -53,7 +60,7 @@ TodoWrite([
 
 Multiple Task calls in a single message execute in parallel. Results return directly.
 
-```
+```text
 // All Task calls in ONE message = parallel execution
 
 Task(
@@ -94,7 +101,7 @@ Task(
 ```
 
 <dynamic-agents>
-**DYNAMIC AGENT SPAWNING**: After bash analysis, spawn ADDITIONAL explore agents based on project scale:
+**DYNAMIC AGENT SPAWNING**: After structural analysis, spawn ADDITIONAL explore agents based on project scale:
 
 | Factor | Threshold | Additional Agents |
 |--------|-----------|-------------------|
@@ -105,16 +112,35 @@ Task(
 | **Monorepo** | detected | +1 per package/workspace |
 | **Multiple languages** | >1 | +1 per language |
 
-```bash
-# Measure project scale first
-total_files=$(find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | wc -l)
-total_lines=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' -exec wc -l {} + 2>/dev/null | awk '!/total/{s+=$1} END{print s+0}')
-large_files=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' -exec wc -l {} + 2>/dev/null | awk '!/total/ && $1 > 500 {count++} END {print count+0}')
-max_depth=$(find . -type d -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | awk -F/ '{print NF}' | sort -rn | head -1)
+Use agent-native tools to measure project scale. Read the project root directory, then use glob to count files by pattern. Replace `{{PROJECT_ROOT}}` with the actual absolute path to the project:
+
+```text
+// Count source files — adapt patterns to detected languages
+glob(pattern="**/*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
+
+// Discover project directories (read root listing to find src, lib, app, cmd, pkg, etc.)
+read(filePath="{{PROJECT_ROOT}}")
+
+// Then glob each discovered source directory for file counts
+glob(pattern="src/**", path="{{PROJECT_ROOT}}")
+glob(pattern="lib/**", path="{{PROJECT_ROOT}}")
+// ... adapt to the actual directories found above
+
+// Check directory depth by reading subdirectories of EACH discovered source directory
+// Do NOT hardcode "src" — use the directories found above
+// e.g. if root listing reveals src/, lib/, app/ → read each one:
+read(filePath="{{PROJECT_ROOT}}/{discovered_dir}")  // lists entries
 ```
 
+From glob results, derive:
+- **total_files**: count from the language-extension glob (covers all source dirs regardless of layout)
+- **total_lines**: use `grep` with line counting or `read` files and count
+- **large_files**: files where read reveals >500 lines
+- **max_depth**: deepest directory nesting level
+
 Example spawning (all in ONE message for parallel execution):
-```
+
+```text
 // 500 files, 50k lines, depth 6, 15 large files → spawn additional agents
 Task(
   description="large files",
@@ -141,23 +167,62 @@ Task(
 
 **While Task agents execute**, main session does:
 
-#### 1. Bash Structural Analysis
-```bash
-# Directory depth + file counts
-find . -type d -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | awk -F/ '{print NF-1}' | sort -n | uniq -c
+#### 1. Structural Analysis (OS-Agnostic)
 
-# Files per directory (top 30)
-find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -30
+Use agent-native tools for all structural discovery. These work identically on macOS, Linux, WSL, Windows PowerShell, and Windows CMD.
 
-# Code concentration by extension
-find . -type f \( -name "*.py" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.go" -o -name "*.rs" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -20
+**Directory depth + file counts:**
 
-# Existing AGENTS.md / CLAUDE.md
-find . -type f \( -name "AGENTS.md" -o -name "CLAUDE.md" \) -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' 2>/dev/null
+```text
+// List directory tree from root
+read(filePath="{{PROJECT_ROOT}}")
+
+// Then recursively read subdirectories to map depth
+// Use directories discovered from root listing — never assume "src" exists
+read(filePath="{{PROJECT_ROOT}}/{discovered_dir_1}")
+read(filePath="{{PROJECT_ROOT}}/{discovered_dir_2}")
+// ... etc for each major directory found above
 ```
+
+**Files per directory (top 30):**
+
+```text
+// Use glob to count files per directory
+// Use glob on EACH discovered source directory (never hardcode "src")
+glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
+glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
+
+// For aggregate counts, use grep to find all files matching extensions
+// Search the project root recursively instead of a single "src" dir
+grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
+```
+
+**Code concentration by extension:**
+
+```text
+// Find all source files by extension
+glob(pattern="**/*.py", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.ts", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.tsx", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.js", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.go", path="{{PROJECT_ROOT}}")
+glob(pattern="**/*.rs", path="{{PROJECT_ROOT}}")
+```
+
+**Existing AGENTS.md / CLAUDE.md:**
+
+```text
+glob(pattern="**/AGENTS.md", path="{{PROJECT_ROOT}}")
+glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
+```
+
+<critical>
+**Use absolute paths** — all glob, grep, and read calls should use absolute file paths. Derive the project root from the working directory context and construct paths from there.
+</critical>
 
 #### 2. Read Existing AGENTS.md
-```
+
+```text
 For each existing file found:
   Read(filePath=file)
   Extract: key insights, conventions, anti-patterns
@@ -167,7 +232,8 @@ For each existing file found:
 If `--create-new`: Read all existing first (preserve context) → then delete all → regenerate.
 
 #### 3. LSP Codemap (if available)
-```
+
+```text
 lsp_servers()  # Check availability
 
 # Entry points — use paths discovered by explore agents (parallel)
@@ -185,7 +251,7 @@ lsp_find_references(filePath="...", line=X, character=Y)
 
 **LSP Fallback**: If unavailable, rely on explore agents + AST-grep.
 
-**Merge: bash + LSP + existing + Task agent results. Mark "discovery" as completed.**
+**Merge: structural analysis + LSP + existing + Task agent results. Mark "discovery" as completed.**
 
 ---
 
@@ -197,11 +263,11 @@ lsp_find_references(filePath="...", line=X, character=Y)
 
 | Factor | Weight | High Threshold | Source |
 |--------|--------|----------------|--------|
-| File count | 3x | >20 | bash |
-| Subdir count | 2x | >5 | bash |
-| Code ratio | 2x | >70% | bash |
+| File count | 3x | >20 | glob |
+| Subdir count | 2x | >5 | read |
+| Code ratio | 2x | >70% | glob |
 | Unique patterns | 1x | Has own config | explore |
-| Module boundary | 2x | Has index.ts/__init__.py | bash |
+| Module boundary | 2x | Has index.ts/__init__.py | glob |
 | Symbol density | 2x | >30 symbols | LSP |
 | Export count | 2x | >10 exports | LSP |
 | Reference centrality | 3x | >20 refs | LSP |
@@ -216,7 +282,8 @@ lsp_find_references(filePath="...", line=X, character=Y)
 | **<8** | Skip (parent covers) |
 
 ### Output
-```
+
+```text
 AGENTS_LOCATIONS = [
   { path: ".", type: "root" },
   { path: "src/hooks", score: 18, reason: "high complexity" },
@@ -270,8 +337,8 @@ AGENTS_LOCATIONS = [
 {Project-specific}
 
 ## COMMANDS
-\`\`\`bash
-{dev/test/build}
+\`\`\`
+{dev/test/build — use platform-appropriate syntax}
 \`\`\`
 
 ## NOTES
@@ -284,7 +351,7 @@ AGENTS_LOCATIONS = [
 
 Launch general agents for each location in ONE message (parallel execution):
 
-```
+```text
 // All in single message = parallel
 Task(
   description="AGENTS.md for src/hooks",
@@ -330,7 +397,7 @@ For each generated file:
 
 ## Final Report
 
-```
+```text
 === index-knowledge Complete ===
 
 Mode: {update | create-new}
@@ -359,3 +426,4 @@ Hierarchy:
 - **Redundancy**: Child never repeats parent
 - **Generic content**: Remove anything that applies to ALL projects
 - **Verbose style**: Telegraphic or die
+- **Platform-specific commands**: MUST use agent-native tools (glob, grep, read) — never assume bash or PowerShell availability

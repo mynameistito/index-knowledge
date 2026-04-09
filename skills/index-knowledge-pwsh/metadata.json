@@ -1,7 +1,0 @@
-{
-  "version": "1.0.1",
-  "organization": "mynameistito",
-  "date": "April 2026",
-  "abstract": "Generates a hierarchical AGENTS.md knowledge base for any codebase. Discovery-scans the project tree in parallel using explore agents, structural analysis, and LSP symbols, then scores each directory on file count, symbol density, module boundaries, and export centrality. Produces root and subdirectory AGENTS.md files that stay under 150 lines — concise enough for LLM context windows — with no generic advice or redundant parent content.",
-  "references": []
-}
