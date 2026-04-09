@@ -1,0 +1,40 @@
+skills/index-knowledge/README.md
+  edfe15fdac4ba831 63
+  bcc2420c7a62349f 23
+skills/index-knowledge/SKILL.md
+  edfe15fdac4ba831 415
+  bcc2420c7a62349f 22,43,63,115,117,119,121-126,129,133,139,171,173,176-177,182,184-185,188,192,194-199,203-205,213,223,272,340,386
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "81aac2e139671f1944ed4294b0ec9b96be435e01",
+  "prompts": {
+    "bcc2420c7a62349f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_2907f43d1ffeK4RgJtqcrHxxcg",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 46,
+      "total_deletions": 42,
+      "accepted_lines": 39,
+      "overriden_lines": 0
+    },
+    "edfe15fdac4ba831": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_290930167ffeM9iyQKJpvUHIC5",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 439,
+      "overriden_lines": 0
+    }
+  }
+}
