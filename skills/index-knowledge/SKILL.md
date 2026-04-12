@@ -11,14 +11,14 @@ metadata:
 
 Generate hierarchical AGENTS.md files — a single root overview plus targeted subdirectory docs scored by complexity and domain distinctness. Every file stays under 150 lines so it fits in an LLM context window without drowning the model in boilerplate.
 
-**This skill is OS-agnostic.** All structural analysis uses agent-native tools (glob, grep, read) that work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands required. If `rg` (ripgrep) is available, it can be used for faster content search via `bash`.
+**This skill is OS-agnostic.** All structural analysis uses agent-native tools (glob, grep, read) that work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands required. If `rg` (ripgrep) is available, it can be used for faster content search by invoking it through the runtime's process/spawn facilities (e.g., Node.js `child_process.spawnSync`, Python `subprocess.run`, Go `exec.Command`) — never hardcode a shell like bash or PowerShell.
 
 ## Abstract
 
 Most codebases lack machine-readable orientation: no quick map of where things live, what conventions are non-obvious, or which directories are complexity hotspots. `index-knowledge` fixes that by producing a hierarchy of concise AGENTS.md files. It discovery-scans the tree in parallel (agent-native structural analysis + explore agents + LSP symbols where available), scores each directory on file count, symbol density, module boundaries, and export centrality, then decides which locations warrant their own doc. Root gets the full treatment (`OVERVIEW`, `STRUCTURE`, `WHERE TO LOOK`, `CODE MAP`, `CONVENTIONS`, `ANTI-PATTERNS`, `COMMANDS`, `NOTES`); subdirectories get a leaner version that never repeats the parent. The result is a map an agent can follow in seconds instead of minutes.
 
 <rg-preference>
-**Check for `rg` (ripgrep) availability early — use it if present, otherwise default to `grep`.** At the start of Phase 1, attempt to spawn `rg --version` via the runtime's cross-platform process API (not hardcoded to bash or PowerShell). If that execution succeeds, prefer `rg` for:
+**Check for `rg` (ripgrep) availability early — use it if present, otherwise default to `grep`.** At the start of Phase 1, attempt to run `rg --version` using the runtime's non-shell process/spawn facilities (e.g., Node.js `child_process.spawnSync`, Python `subprocess.run` or `shutil.which`, Go `exec.LookPath` / `exec.Command`) without invoking a shell. If that subprocess invocation returns successfully, prefer `rg` for:
 - File listing: `rg --files -g 'glob' path` (respects .gitignore and rg ignore rules)
 - Content search: `rg pattern path -g 'glob'`
 - File listing by content: `rg -l pattern path`
@@ -209,7 +209,8 @@ glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
 
 // For aggregate counts, use grep to find all files matching extensions
 // Search the project root recursively instead of a single "src" dir
-// If rg is available, prefer: bash(command="rg --files -g '*.{ts,tsx,js,py,go,rs}' '{{PROJECT_ROOT}}'")
+// If rg was detected, prefer it via the cross-platform process invocation
+// (see <rg-preference> above) — e.g. spawn("rg", ["--files", "-g", "*.{ts,tsx,js,py,go,rs}", "{{PROJECT_ROOT}}"])
 grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 ```
 
@@ -233,7 +234,7 @@ glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
 ```
 
 <critical>
-**Use absolute paths** — all glob, grep, rg, and read calls should use absolute file paths. Derive the project root from the working directory context and construct paths from there.
+**Use absolute paths** — all glob, grep, read, and rg (when invoked via subprocess) calls should use absolute file paths. Derive the project root from the working directory context and construct paths from there.
 </critical>
 
 #### 2. Read Existing AGENTS.md
