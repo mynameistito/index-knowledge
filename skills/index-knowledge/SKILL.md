@@ -18,12 +18,12 @@ Generate hierarchical AGENTS.md files — a single root overview plus targeted s
 Most codebases lack machine-readable orientation: no quick map of where things live, what conventions are non-obvious, or which directories are complexity hotspots. `index-knowledge` fixes that by producing a hierarchy of concise AGENTS.md files. It discovery-scans the tree in parallel (agent-native structural analysis + explore agents + LSP symbols where available), scores each directory on file count, symbol density, module boundaries, and export centrality, then decides which locations warrant their own doc. Root gets the full treatment (`OVERVIEW`, `STRUCTURE`, `WHERE TO LOOK`, `CODE MAP`, `CONVENTIONS`, `ANTI-PATTERNS`, `COMMANDS`, `NOTES`); subdirectories get a leaner version that never repeats the parent. The result is a map an agent can follow in seconds instead of minutes.
 
 <rg-preference>
-**Check for `rg` (ripgrep) availability early — use it if present, otherwise default to `grep`.** At the start of Phase 1, run `bash(command="rg --version")` to detect `rg`. If available, prefer `rg` for:
-- Line counting: `rg -c pattern path` or `rg --count '.' path`
-- File listing by content: `rg -l pattern path`
+**Check for `rg` (ripgrep) availability early — use it if present, otherwise default to `grep`.** At the start of Phase 1, attempt to spawn `rg --version` via the runtime's cross-platform process API (not hardcoded to bash or PowerShell). If that execution succeeds, prefer `rg` for:
+- File listing: `rg --files -g 'glob' path` (respects .gitignore and rg ignore rules)
 - Content search: `rg pattern path -g 'glob'`
-- File listing: `rg --files -g 'glob' path`
-- Aggregate stats: `rg --count` across patterns
+- File listing by content: `rg -l pattern path`
+
+For **total line counts**, do not use `rg --count` or `rg -c` (they count only matching/non-empty lines, skipping blanks). Instead: use `rg --files` to produce the file list (preserving ignore rules), then count physical lines per file with a line-counting utility and sum the totals.
 
 If `rg` is not installed, use the agent-native `grep` tool as the default. Always have a `grep` fallback — never require `rg`.
 
@@ -149,7 +149,7 @@ read(filePath="{{PROJECT_ROOT}}/{discovered_dir}")  // lists entries
 
 From glob results, derive:
 - **total_files**: count from the language-extension glob (covers all source dirs regardless of layout)
-- **total_lines**: use `grep` with line counting or `read` files and count; if `rg` is available, prefer `rg --count '.' path` for speed
+- **total_lines**: use `grep` with line counting or `read` files and count; if `rg` is available, use `rg --files` to list source files (respecting ignore rules), then count physical lines per file and sum (do not use `rg --count`, which skips blank lines)
 - **large_files**: files where read reveals >500 lines
 - **max_depth**: deepest directory nesting level
 
