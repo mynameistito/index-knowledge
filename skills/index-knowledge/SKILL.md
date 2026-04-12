@@ -209,7 +209,7 @@ glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
 
 // For aggregate counts, use grep to find all files matching extensions
 // Search the project root recursively instead of a single "src" dir
-// If rg is available, prefer: bash(command="rg --files -g '*.{ts,tsx,js,py,go,rs}' {{PROJECT_ROOT}}")
+// If rg is available, prefer: bash(command="rg --files -g '*.{ts,tsx,js,py,go,rs}' '{{PROJECT_ROOT}}'")
 grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 ```
 
@@ -427,7 +427,24 @@ This project uses AGENTS.md files for AI context. Read AGENTS.md in this directo
 
 For each entry in `AGENTS_LOCATIONS`, write a CLAUDE.md at the same path. Use `Write` tool for each — all writes can happen in parallel (same message).
 
-**Skip if CLAUDE.md already exists and contains substantive content** (not just a bridge pointer). Read existing CLAUDE.md first — only overwrite if it is a previous bridge file or empty.
+### Cleanup orphaned bridge files
+
+After creating CLAUDE.md files, scan for any existing CLAUDE.md files whose content matches the bridge template verbatim but whose directory is NOT in `AGENTS_LOCATIONS`. These are stale bridge files left from a prior run (e.g. after `--create-new` removed an AGENTS.md that no longer clears the scoring threshold). Remove them so tools don't point to an AGENTS.md that no longer exists.
+
+```text
+// For each CLAUDE.md found via glob, read it.
+// If its content matches the bridge template AND its parent dir is NOT in AGENTS_LOCATIONS:
+//   Delete it and log "Removed orphaned CLAUDE.md at {path}"
+// If its content does NOT match the bridge template:
+//   Leave it alone (user-authored, not a bridge file)
+```
+
+**Overwrite guard (deterministic, not judgment-based):** Read existing CLAUDE.md first. Only overwrite if one of the following is true:
+- The file is empty.
+- The file's full content matches the bridge template string verbatim:
+  `This project uses AGENTS.md files for AI context. Read AGENTS.md in this directory for relevant instructions and knowledge.`
+
+If neither condition is met, leave the file untouched and log `"CLAUDE.md already exists — skipped."` This prevents destroying user-authored content.
 
 ```text
 // Example: if AGENTS_LOCATIONS = [{ path: "." }, { path: "src/hooks" }, { path: "src/api" }]
