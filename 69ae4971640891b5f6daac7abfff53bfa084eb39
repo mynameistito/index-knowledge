@@ -1,0 +1,23 @@
+skills/index-knowledge/SKILL.md
+  bd914c80a8f0fc22 212,430-447
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "69ae4971640891b5f6daac7abfff53bfa084eb39",
+  "prompts": {
+    "bd914c80a8f0fc22": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_2801606c0ffexHiHb1Lr66mPnl",
+        "model": "unknown"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 19,
+      "total_deletions": 2,
+      "accepted_lines": 19,
+      "overriden_lines": 0
+    }
+  }
+}
