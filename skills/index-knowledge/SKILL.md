@@ -4,18 +4,31 @@ description: Generate a hierarchical AGENTS.md knowledge base for any codebase. 
 license: MIT
 metadata:
   author: mynameistito, dmmulroy
-  version: "1.0.2"
+  version: "1.1.0"
 ---
 
 # index-knowledge
 
 Generate hierarchical AGENTS.md files — a single root overview plus targeted subdirectory docs scored by complexity and domain distinctness. Every file stays under 150 lines so it fits in an LLM context window without drowning the model in boilerplate.
 
-**This skill is OS-agnostic.** All structural analysis uses agent-native tools (glob, grep, read) that work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands required.
+**This skill is OS-agnostic.** All structural analysis uses agent-native tools (glob, grep, read) that work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands required. If `rg` (ripgrep) is available, it can be used for faster content search by invoking it through the runtime's process/spawn facilities (e.g., Node.js `child_process.spawnSync`, Python `subprocess.run`, Go `exec.Command`) — never hardcode a shell like bash or PowerShell.
 
 ## Abstract
 
 Most codebases lack machine-readable orientation: no quick map of where things live, what conventions are non-obvious, or which directories are complexity hotspots. `index-knowledge` fixes that by producing a hierarchy of concise AGENTS.md files. It discovery-scans the tree in parallel (agent-native structural analysis + explore agents + LSP symbols where available), scores each directory on file count, symbol density, module boundaries, and export centrality, then decides which locations warrant their own doc. Root gets the full treatment (`OVERVIEW`, `STRUCTURE`, `WHERE TO LOOK`, `CODE MAP`, `CONVENTIONS`, `ANTI-PATTERNS`, `COMMANDS`, `NOTES`); subdirectories get a leaner version that never repeats the parent. The result is a map an agent can follow in seconds instead of minutes.
+
+<rg-preference>
+**Check for `rg` (ripgrep) availability early — use it if present, otherwise default to `grep`.** At the start of Phase 1, attempt to run `rg --version` using the runtime's non-shell process/spawn facilities (e.g., Node.js `child_process.spawnSync`, Python `subprocess.run` or `shutil.which`, Go `exec.LookPath` / `exec.Command`) without invoking a shell. If that subprocess invocation returns successfully, prefer `rg` for:
+- File listing: `rg --files -g 'glob' path` (respects .gitignore and rg ignore rules)
+- Content search: `rg pattern path -g 'glob'`
+- File listing by content: `rg -l pattern path`
+
+For **total line counts**, do not use `rg --count` or `rg -c` (they count only matching/non-empty lines, skipping blanks). Instead: use `rg --files` to produce the file list (preserving ignore rules), then count physical lines per file with a line-counting utility and sum the totals.
+
+If `rg` is not installed, use the agent-native `grep` tool as the default. Always have a `grep` fallback — never require `rg`.
+
+`rg` is cross-platform (Windows/macOS/Linux) and significantly faster than grep on large codebases.
+</rg-preference>
 
 ## Usage
 
@@ -36,6 +49,7 @@ Default: Update mode (modify existing + create new where warranted)
 2. **Score & Decide** - Determine AGENTS.md locations from merged findings
 3. **Generate** - Root first, then subdirs in parallel
 4. **Review** - Deduplicate, trim, validate
+5. **CLAUDE.md Bridge** - Create CLAUDE.md alongside every AGENTS.md location
 
 <critical>
 **TodoWrite ALL phases. Mark in_progress → completed in real-time.**
@@ -45,7 +59,8 @@ TodoWrite([
   { id: "discovery", content: "Fire explore agents + LSP codemap + read existing", status: "pending", priority: "high" },
   { id: "scoring", content: "Score directories, determine locations", status: "pending", priority: "high" },
   { id: "generate", content: "Generate AGENTS.md files (root + subdirs)", status: "pending", priority: "high" },
-  { id: "review", content: "Deduplicate, validate, trim", status: "pending", priority: "medium" }
+  { id: "review", content: "Deduplicate, validate, trim", status: "pending", priority: "medium" },
+  { id: "claude-md", content: "Create CLAUDE.md bridge files alongside AGENTS.md locations", status: "pending", priority: "medium" }
 ])
 ```
 </critical>
@@ -134,7 +149,7 @@ read(filePath="{{PROJECT_ROOT}}/{discovered_dir}")  // lists entries
 
 From glob results, derive:
 - **total_files**: count from the language-extension glob (covers all source dirs regardless of layout)
-- **total_lines**: use `grep` with line counting or `read` files and count
+- **total_lines**: use `grep` with line counting or `read` files and count; if `rg` is available, use `rg --files` to list source files (respecting ignore rules), then count physical lines per file and sum (do not use `rg --count`, which skips blank lines)
 - **large_files**: files where read reveals >500 lines
 - **max_depth**: deepest directory nesting level
 
@@ -194,6 +209,8 @@ glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
 
 // For aggregate counts, use grep to find all files matching extensions
 // Search the project root recursively instead of a single "src" dir
+// If rg was detected, prefer it via the cross-platform process invocation
+// (see <rg-preference> above) — e.g. spawn("rg", ["--files", "-g", "*.{ts,tsx,js,py,go,rs}", "{{PROJECT_ROOT}}"])
 grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 ```
 
@@ -217,7 +234,7 @@ glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
 ```
 
 <critical>
-**Use absolute paths** — all glob, grep, and read calls should use absolute file paths. Derive the project root from the working directory context and construct paths from there.
+**Use absolute paths** — all glob, grep, read, and rg (when invoked via subprocess) calls should use absolute file paths. Derive the project root from the working directory context and construct paths from there.
 </critical>
 
 #### 2. Read Existing AGENTS.md
@@ -249,7 +266,7 @@ lsp_workspace_symbols(filePath=".", query="function")
 lsp_find_references(filePath="...", line=X, character=Y)
 ```
 
-**LSP Fallback**: If unavailable, rely on explore agents + AST-grep.
+**LSP Fallback**: If unavailable, rely on explore agents + ast-grep. If `rg` is available, prefer it over grep for content search.
 
 **Merge: structural analysis + LSP + existing + Task agent results. Mark "discovery" as completed.**
 
@@ -395,6 +412,53 @@ For each generated file:
 
 ---
 
+## Phase 5: Create CLAUDE.md Bridge Files
+
+**Mark "claude-md" as in_progress.**
+
+For every directory that received an AGENTS.md, create a companion CLAUDE.md that points to it. This ensures Claude Code and other tools that look for CLAUDE.md will discover the AGENTS.md context.
+
+### Content (identical for all locations)
+
+```markdown
+This project uses AGENTS.md files for AI context. Read AGENTS.md in this directory for relevant instructions and knowledge.
+```
+
+### Implementation
+
+For each entry in `AGENTS_LOCATIONS`, write a CLAUDE.md at the same path. Use `Write` tool for each — all writes can happen in parallel (same message).
+
+### Cleanup orphaned bridge files
+
+After creating CLAUDE.md files, scan for any existing CLAUDE.md files whose content matches the bridge template verbatim but whose directory is NOT in `AGENTS_LOCATIONS`. These are stale bridge files left from a prior run (e.g. after `--create-new` removed an AGENTS.md that no longer clears the scoring threshold). Remove them so tools don't point to an AGENTS.md that no longer exists.
+
+```text
+// For each CLAUDE.md found via glob, read it.
+// If its content matches the bridge template AND its parent dir is NOT in AGENTS_LOCATIONS:
+//   Delete it and log "Removed orphaned CLAUDE.md at {path}"
+// If its content does NOT match the bridge template:
+//   Leave it alone (user-authored, not a bridge file)
+```
+
+**Overwrite guard (deterministic, not judgment-based):** Read existing CLAUDE.md first. Only overwrite if one of the following is true:
+- The file is empty.
+- The file's full content matches the bridge template string verbatim:
+  `This project uses AGENTS.md files for AI context. Read AGENTS.md in this directory for relevant instructions and knowledge.`
+
+If neither condition is met, leave the file untouched and log `"CLAUDE.md already exists — skipped."` This prevents destroying user-authored content.
+
+```text
+// Example: if AGENTS_LOCATIONS = [{ path: "." }, { path: "src/hooks" }, { path: "src/api" }]
+// Then create:
+//   ./CLAUDE.md
+//   ./src/hooks/CLAUDE.md
+//   ./src/api/CLAUDE.md
+```
+
+**Mark "claude-md" as completed.**
+
+---
+
 ## Final Report
 
 ```text
@@ -404,11 +468,14 @@ Mode: {update | create-new}
 
 Files:
   ✓ ./AGENTS.md (root, {N} lines)
+  ✓ ./CLAUDE.md (bridge)
   ✓ ./src/hooks/AGENTS.md ({N} lines)
+  ✓ ./src/hooks/CLAUDE.md (bridge)
 
 Dirs Analyzed: {N}
 AGENTS.md Created: {N}
 AGENTS.md Updated: {N}
+CLAUDE.md Created: {N}
 
 Hierarchy:
   ./AGENTS.md
@@ -426,4 +493,4 @@ Hierarchy:
 - **Redundancy**: Child never repeats parent
 - **Generic content**: Remove anything that applies to ALL projects
 - **Verbose style**: Telegraphic or die
-- **Platform-specific commands**: MUST use agent-native tools (glob, grep, read) — never assume bash or PowerShell availability
+- **Platform-specific commands**: MUST use agent-native tools (glob, grep, read) — never assume bash or PowerShell availability. If `rg` is detected as available, prefer it for speed but always have a grep fallback.
