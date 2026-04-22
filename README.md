@@ -2,7 +2,7 @@
 
 > Generate hierarchical AGENTS.md knowledge bases for any codebase — concise enough for LLM context windows, specific enough to be useful. Fully OS-agnostic: macOS, Linux, WSL, Windows PowerShell, Windows CMD.
 
-Created by [@dmmulroy](https://github.com/dmmulroy/) in his [.dotfiles](https://github.com/dmmulroy/.dotfiles) repository. This repo forks and extends the skill with a unified OS-agnostic variant that uses agent-native tools instead of platform-specific shell commands.
+Orignally found in [@dmmulroy](https://github.com/dmmulroy/)'s [.dotfiles](https://github.com/dmmulroy/.dotfiles) repository. This repo forks and extends the skill with a unified OS-agnostic variant that uses agent-native tools instead of platform-specific shell commands.
 
 ---
 
