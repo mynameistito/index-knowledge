@@ -11,21 +11,21 @@ metadata:
 
 Generate hierarchical AGENTS.md files — a single root overview plus targeted subdirectory docs scored by complexity and domain distinctness. Every file stays under 150 lines so it fits in an LLM context window without drowning the model in boilerplate.
 
-**This skill is OS-agnostic.** All structural analysis uses agent-native tools (glob, grep, read) that work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands required. If `rg` (ripgrep) is available, it can be used for faster content search by invoking it through the runtime's process/spawn facilities (e.g., Node.js `child_process.spawnSync`, Python `subprocess.run`, Go `exec.Command`) — never hardcode a shell like bash or PowerShell.
+**This skill is OS-agnostic.** Prefer agent-native tools (`glob`, `grep`, `read`, and equivalent host tools) for structural analysis because they work on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. No platform-specific shell commands are required. If the runtime exposes safe non-shell process execution and `rg` (ripgrep) is installed, `rg` may be used for faster listing/search; never hardcode a shell such as bash, sh, cmd, or PowerShell.
 
 ## Abstract
 
 Most codebases lack machine-readable orientation: no quick map of where things live, what conventions are non-obvious, or which directories are complexity hotspots. `index-knowledge` fixes that by producing a hierarchy of concise AGENTS.md files. It discovery-scans the tree in parallel (agent-native structural analysis + explore agents + LSP symbols where available), scores each directory on file count, symbol density, module boundaries, and export centrality, then decides which locations warrant their own doc. Root gets the full treatment (`OVERVIEW`, `STRUCTURE`, `WHERE TO LOOK`, `CODE MAP`, `CONVENTIONS`, `ANTI-PATTERNS`, `COMMANDS`, `NOTES`); subdirectories get a leaner version that never repeats the parent. The result is a map an agent can follow in seconds instead of minutes.
 
 <rg-preference>
-**Check for `rg` (ripgrep) availability early — use it if present, otherwise default to `grep`.** At the start of Phase 1, attempt to run `rg --version` using the runtime's non-shell process/spawn facilities (e.g., Node.js `child_process.spawnSync`, Python `subprocess.run` or `shutil.which`, Go `exec.LookPath` / `exec.Command`) without invoking a shell. If that subprocess invocation returns successfully, prefer `rg` for:
+**Use agent-native tools first; optionally prefer `rg` (ripgrep) when safely available.** At the start of Phase 1, if the runtime supports non-shell process execution, check whether `rg` exists without invoking a shell. If that invocation returns successfully, `rg` may be used for:
 - File listing: `rg --files -g 'glob' path` (respects .gitignore and rg ignore rules)
 - Content search: `rg pattern path -g 'glob'`
 - File listing by content: `rg -l pattern path`
 
 For **total line counts**, do not use `rg --count` or `rg -c` (they count only matching/non-empty lines, skipping blanks). Instead: use `rg --files` to produce the file list (preserving ignore rules), then count physical lines per file with a line-counting utility and sum the totals.
 
-If `rg` is not installed, use the agent-native `grep` tool as the default. Always have a `grep` fallback — never require `rg`.
+If `rg` is not installed or the runtime cannot invoke subprocesses safely, use the agent-native file and content search tools. Always have a native-tool fallback; never require `rg`.
 
 `rg` is cross-platform (Windows/macOS/Linux) and significantly faster than grep on large codebases.
 </rg-preference>
@@ -39,20 +39,28 @@ If `rg` is not installed, use the agent-native `grep` tool as the default. Alway
 
 Default: Update mode (modify existing + create new where warranted)
 
+## Cross-Platform Rules
+
+- Treat paths as opaque strings returned by the runtime. Use the runtime's path-join behavior when available; do not assume `/` or `\` separators.
+- Use absolute paths for tool calls, but display relative paths in generated docs unless an absolute path is genuinely useful.
+- Exclude generated, vendored, dependency, cache, and build-output directories from scoring and documentation unless the user explicitly asks to include them.
+- Common excludes: `.git`, `node_modules`, `.next`, `.nuxt`, `.turbo`, `.cache`, `.parcel-cache`, `dist`, `build`, `out`, `coverage`, `target`, `vendor`, `bin`, `obj`, `__pycache__`, `.pytest_cache`, `.venv`, `venv`, `.gradle`.
+- Do not use shell-only commands such as `rm -rf`, `cp`, `export VAR=...`, pipes, or POSIX path assumptions in generated command examples unless the repository already uses them.
+
 ---
 
 ## Workflow (High-Level)
 
-1. **Discovery + Analysis** (concurrent)
-   - Launch parallel explore agents (multiple Task calls in one message)
-   - Main session: agent-native structure analysis + LSP codemap + read existing AGENTS.md
+1. **Discovery + Analysis** (concurrent where supported)
+   - Launch parallel explore agents if the runtime supports Task/subagents
+   - Main session: agent-native structure analysis + optional LSP codemap + read existing AGENTS.md
 2. **Score & Decide** - Determine AGENTS.md locations from merged findings
-3. **Generate** - Root first, then subdirs in parallel
+3. **Generate** - Root first, then subdirs in parallel when supported
 4. **Review** - Deduplicate, trim, validate
 5. **CLAUDE.md Bridge** - Create CLAUDE.md alongside every AGENTS.md location
 
 <critical>
-**TodoWrite ALL phases. Mark in_progress → completed in real-time.**
+**Track all phases.** Use TodoWrite when available and mark `in_progress` -> `completed` in real time. If TodoWrite is unavailable, keep an internal phase checklist and include phase status in the final report.
 
 ```text
 TodoWrite([
@@ -69,11 +77,11 @@ TodoWrite([
 
 ## Phase 1: Discovery + Analysis (Concurrent)
 
-**Mark "discovery" as in_progress.**
+**Mark "discovery" as in_progress when phase tracking is available.**
 
 ### Launch Parallel Explore Agents
 
-Multiple Task calls in a single message execute in parallel. Results return directly.
+If Task/subagents are available, multiple Task calls in a single message execute in parallel and return directly. If not available, perform the same analysis in the main session with native tools.
 
 ```text
 // All Task calls in ONE message = parallel execution
@@ -127,7 +135,7 @@ Task(
 | **Monorepo** | detected | +1 per package/workspace |
 | **Multiple languages** | >1 | +1 per language |
 
-Use agent-native tools to measure project scale. Read the project root directory, then use glob to count files by pattern. Replace `{{PROJECT_ROOT}}` with the actual absolute path to the project:
+Use agent-native tools to measure project scale. Read the project root directory, then use glob to count files by pattern. Replace `{{PROJECT_ROOT}}` with the actual absolute path to the project. Apply the common excludes from Cross-Platform Rules to every broad listing/search:
 
 ```text
 // Count source files — adapt patterns to detected languages
@@ -147,9 +155,9 @@ glob(pattern="lib/**", path="{{PROJECT_ROOT}}")
 read(filePath="{{PROJECT_ROOT}}/{discovered_dir}")  // lists entries
 ```
 
-From glob results, derive:
+From filtered glob results, derive:
 - **total_files**: count from the language-extension glob (covers all source dirs regardless of layout)
-- **total_lines**: use `grep` with line counting or `read` files and count; if `rg` is available, use `rg --files` to list source files (respecting ignore rules), then count physical lines per file and sum (do not use `rg --count`, which skips blank lines)
+- **total_lines**: use native file reads or a safe runtime line-counting utility; if `rg` is available, use `rg --files` to list source files (respecting ignore rules), then count physical lines per file and sum (do not use `rg --count`, which skips blank lines)
 - **large_files**: files where read reveals >500 lines
 - **max_depth**: deepest directory nesting level
 
@@ -180,11 +188,11 @@ Task(
 
 ### Main Session: Concurrent Analysis
 
-**While Task agents execute**, main session does:
+**While Task agents execute, if available**, main session does. If Task is unavailable, do these steps sequentially or with whatever native parallelism the runtime supports:
 
 #### 1. Structural Analysis (OS-Agnostic)
 
-Use agent-native tools for all structural discovery. These work identically on macOS, Linux, WSL, Windows PowerShell, and Windows CMD.
+Use agent-native tools for all structural discovery. These work identically on macOS, Linux, WSL, Windows PowerShell, and Windows CMD. Filter out common excluded directories before scoring.
 
 **Directory depth + file counts:**
 
@@ -207,11 +215,11 @@ read(filePath="{{PROJECT_ROOT}}/{discovered_dir_2}")
 glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
 glob(pattern="{discovered_dir}/**/*", path="{{PROJECT_ROOT}}")
 
-// For aggregate counts, use grep to find all files matching extensions
+// For aggregate counts, use native content search to find files matching extensions
 // Search the project root recursively instead of a single "src" dir
-// If rg was detected, prefer it via the cross-platform process invocation
-// (see <rg-preference> above) — e.g. spawn("rg", ["--files", "-g", "*.{ts,tsx,js,py,go,rs}", "{{PROJECT_ROOT}}"])
-grep(pattern=".", glob="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
+// If rg was detected, prefer it via safe non-shell process invocation
+// (see <rg-preference> above)
+grep(pattern=".", include="*.{ts,tsx,js,py,go,rs}", path="{{PROJECT_ROOT}}")
 ```
 
 **Code concentration by extension:**
@@ -234,7 +242,7 @@ glob(pattern="**/CLAUDE.md", path="{{PROJECT_ROOT}}")
 ```
 
 <critical>
-**Use absolute paths** — all glob, grep, read, and rg (when invoked via subprocess) calls should use absolute file paths. Derive the project root from the working directory context and construct paths from there.
+**Use absolute paths for tools** — all glob, grep, read, and rg calls should use absolute file paths. Derive the project root from the working directory context. Treat paths as opaque runtime strings and use path-join behavior when available instead of manually concatenating separators.
 </critical>
 
 #### 2. Read Existing AGENTS.md
@@ -246,7 +254,15 @@ For each existing file found:
   Store in EXISTING_AGENTS map
 ```
 
-If `--create-new`: Read all existing first (preserve context) → then delete all → regenerate.
+If `--create-new`: Read all existing first, preserve useful project-specific context, then replace generated AGENTS.md files. Do not delete a clearly hand-authored AGENTS.md unless the user explicitly requested a full reset.
+
+### Existing File Safety
+
+- Update mode: merge with existing AGENTS.md instead of blindly replacing it.
+- Preserve project-specific conventions, anti-patterns, commands, and gotchas unless analysis proves they are obsolete.
+- Remove stale generated boilerplate, duplicated parent content, and generic advice.
+- If an existing AGENTS.md appears hand-authored and conflicts with generated findings, keep the hand-authored instruction and report the conflict.
+- Never modify unrelated user-authored CLAUDE.md files; Phase 5 only manages exact bridge files.
 
 #### 3. LSP Codemap (if available)
 
@@ -266,15 +282,15 @@ lsp_workspace_symbols(filePath=".", query="function")
 lsp_find_references(filePath="...", line=X, character=Y)
 ```
 
-**LSP Fallback**: If unavailable, rely on explore agents + ast-grep. If `rg` is available, prefer it over grep for content search.
+**LSP Fallback**: If unavailable, rely on explore agents, ast-grep if available, and native content search. If `rg` is safely available, prefer it for content search performance.
 
-**Merge: structural analysis + LSP + existing + Task agent results. Mark "discovery" as completed.**
+**Merge: structural analysis + optional LSP + existing files + optional Task agent results. Mark "discovery" as completed when phase tracking is available.**
 
 ---
 
 ## Phase 2: Scoring & Location Decision
 
-**Mark "scoring" as in_progress.**
+**Mark "scoring" as in_progress when phase tracking is available.**
 
 ### Scoring Matrix
 
@@ -285,9 +301,9 @@ lsp_find_references(filePath="...", line=X, character=Y)
 | Code ratio | 2x | >70% | glob |
 | Unique patterns | 1x | Has own config | explore |
 | Module boundary | 2x | Has index.ts/__init__.py | glob |
-| Symbol density | 2x | >30 symbols | LSP |
-| Export count | 2x | >10 exports | LSP |
-| Reference centrality | 3x | >20 refs | LSP |
+| Symbol density | 2x | >30 symbols | LSP or ast-grep |
+| Export count | 2x | >10 exports | LSP or content search |
+| Reference centrality | 3x | >20 refs | LSP if available |
 
 ### Decision Rules
 
@@ -308,13 +324,13 @@ AGENTS_LOCATIONS = [
 ]
 ```
 
-**Mark "scoring" as completed.**
+**Mark "scoring" as completed when phase tracking is available.**
 
 ---
 
 ## Phase 3: Generate AGENTS.md
 
-**Mark "generate" as in_progress.**
+**Mark "generate" as in_progress when phase tracking is available.**
 
 ### Root AGENTS.md (Full Treatment)
 
@@ -340,7 +356,7 @@ AGENTS_LOCATIONS = [
 |------|----------|-------|
 
 ## CODE MAP
-{From LSP - skip if unavailable or project <10 files}
+{From LSP, ast-grep, or content search - skip if unavailable or project <10 files}
 
 | Symbol | Type | Location | Refs | Role |
 
@@ -355,7 +371,7 @@ AGENTS_LOCATIONS = [
 
 ## COMMANDS
 \`\`\`
-{dev/test/build — use platform-appropriate syntax}
+{dev/test/build — prefer package-manager or tool commands that work cross-platform}
 \`\`\`
 
 ## NOTES
@@ -364,9 +380,16 @@ AGENTS_LOCATIONS = [
 
 **Quality gates**: 50-150 lines, no generic advice, no obvious info.
 
-### Subdirectory AGENTS.md (Parallel)
+### Command Guidance
 
-Launch general agents for each location in ONE message (parallel execution):
+- Prefer commands already declared by the repo: package scripts, Make targets, task runner commands, `cargo`, `go`, `dotnet`, `pytest`, etc.
+- Prefer cross-platform commands (`bun test`, `npm run build`, `cargo test`, `go test ./...`, `dotnet test`) over shell snippets.
+- If commands differ by OS, label them explicitly as `Windows PowerShell` and `macOS/Linux`.
+- Do not invent setup commands. If a command is inferred rather than verified from repo files, mark it as inferred or omit it.
+
+### Subdirectory AGENTS.md (Parallel When Available)
+
+Launch general agents for each location in ONE message when Task/subagents are available. Otherwise, generate each file in the main session and keep the same quality gates:
 
 ```text
 // All in single message = parallel
@@ -394,27 +417,29 @@ Task(
 // ... one Task per AGENTS_LOCATIONS entry
 ```
 
-**Results return directly. Mark "generate" as completed.**
+**Results return directly when Task/subagents are available. Mark "generate" as completed when phase tracking is available.**
 
 ---
 
 ## Phase 4: Review & Deduplicate
 
-**Mark "review" as in_progress.**
+**Mark "review" as in_progress when phase tracking is available.**
 
 For each generated file:
 - Remove generic advice
 - Remove parent duplicates
 - Trim to size limits
 - Verify telegraphic style
+- Verify commands are cross-platform or clearly OS-labeled
+- Verify excluded/generated directories did not drive scoring
 
-**Mark "review" as completed.**
+**Mark "review" as completed when phase tracking is available.**
 
 ---
 
 ## Phase 5: Create CLAUDE.md Bridge Files
 
-**Mark "claude-md" as in_progress.**
+**Mark "claude-md" as in_progress when phase tracking is available.**
 
 For every directory that received an AGENTS.md, create a companion CLAUDE.md that points to it. This ensures Claude Code and other tools that look for CLAUDE.md will discover the AGENTS.md context.
 
@@ -455,7 +480,7 @@ If neither condition is met, leave the file untouched and log `"CLAUDE.md alread
 //   ./src/api/CLAUDE.md
 ```
 
-**Mark "claude-md" as completed.**
+**Mark "claude-md" as completed when phase tracking is available.**
 
 ---
 
@@ -487,10 +512,12 @@ Hierarchy:
 ## Anti-Patterns
 
 - **Static agent count**: MUST vary agents based on project size/depth
-- **Sequential execution**: MUST parallel (multiple Task calls in one message)
+- **Sequential execution when parallelism exists**: Use parallel Task/tool calls when available; otherwise continue in the main session
 - **Ignoring existing**: ALWAYS read existing first, even with --create-new
 - **Over-documenting**: Not every dir needs AGENTS.md
 - **Redundancy**: Child never repeats parent
 - **Generic content**: Remove anything that applies to ALL projects
 - **Verbose style**: Telegraphic or die
-- **Platform-specific commands**: MUST use agent-native tools (glob, grep, read) — never assume bash or PowerShell availability. If `rg` is detected as available, prefer it for speed but always have a grep fallback.
+- **Platform-specific commands**: MUST use agent-native tools (`glob`, `grep`, `read`, or runtime equivalents) — never assume bash, sh, cmd, or PowerShell availability. If `rg` is safely available, prefer it for speed but always have a native-tool fallback.
+- **Generated-directory noise**: MUST exclude dependency, cache, vendored, and build-output directories unless explicitly requested
+- **Unsafe replacement**: MUST merge or preserve hand-authored AGENTS.md content unless the user explicitly requests deletion
