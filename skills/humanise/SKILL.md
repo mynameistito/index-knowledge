@@ -1,6 +1,10 @@
 ---
 name: humanise
 description: Audit and improve drafts that may sound AI-generated. Use when the user asks to humanize, humanise, de-AI, make writing sound natural, remove AI-sounding patterns, audit a message or draft for AI tells, preserve tone while rewriting, or rate how human a piece of writing feels.
+license: MIT
+metadata:
+  author: mynameistito
+  version: "1.0.0"
 ---
 
 # Humanise
@@ -32,7 +36,7 @@ Before auditing, read `references/signs-of-ai-writing.md` if it has not already 
    - Remove stock phrases and tidy symmetry.
    - Let a little specificity, preference, uncertainty, or directness remain when it suits the draft.
    - Keep imperfections that feel intentional and useful; do not over-smooth.
-4. Explain the biggest changes in 2-4 short bullets.
+4. Explain the main changes in 2-4 short bullets.
 5. Optionally rate both versions if the user asks for ratings or if ratings would be useful:
    - `Original human feel: N/10`
    - `Revised human feel: N/10`
@@ -64,6 +68,6 @@ Omit the rating section when the user only wants a quick rewrite. For tiny draft
 - Preserve the requested tone: professional, warm, casual, blunt, academic, persuasive, apologetic, etc.
 - Do not add personal anecdotes unless the user gave enough context to support them.
 - Do not make the text sloppy just to make it "human".
-- Do not overuse contractions, fragments, jokes, idioms, or emotional language.
+- Avoid overusing contractions, fragments, jokes, idioms, or emotional language.
 - If the original has serious factual, legal, medical, or financial claims, flag unsupported assertions instead of making them sound more confident.
 - If the user asks for a direct replacement, provide the rewritten text first and keep the audit very short.
