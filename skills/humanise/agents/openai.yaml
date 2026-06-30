@@ -1,0 +1,4 @@
+interface:
+  display_name: "Humanize Writing"
+  short_description: "Audit and humanize AI-sounding drafts"
+  default_prompt: "Use $humanise to audit this draft for AI-sounding patterns and rewrite it more naturally."

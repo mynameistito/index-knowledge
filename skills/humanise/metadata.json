@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "organization": "mynameistito",
+  "date": "June 2026",
+  "abstract": "Audits drafts for AI-sounding writing patterns using Wikipedia's Signs of AI writing as a heuristic reference, then rewrites text to feel more natural, personal, and context-aware while preserving meaning and tone.",
+  "references": [
+    "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+  ]
+}
